@@ -747,7 +747,10 @@ function sb_app_activation($app_name, $key) {
             $response = json_decode($response, true);
             if (is_array($response) && !empty($response[$app_name]) && !in_array($response[$app_name], ['purchase-code-limit-exceeded', 'expired'])) {
                 $update_result = sb_app_update($app_name, $response[$app_name], $key);
-                if (!($update_result instanceof SBValidationError)) {
+                if ($update_result instanceof SBValidationError) {
+                    return $update_result;
+                }
+                if ($update_result) {
                     return $update_result;
                 }
             }
