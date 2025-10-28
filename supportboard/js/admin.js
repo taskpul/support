@@ -5467,6 +5467,19 @@
         flows_area = chatbot_area.find('[data-id="flows"] > .sb-content');
         flows_nav = chatbot_area.find('#sb-flows-nav');
 
+        let pending_app_settings = SBF.storage('open-app-settings');
+        if (pending_app_settings) {
+            SBF.storage('open-app-settings', false);
+            setTimeout(() => {
+                let tab = settings_area.find('#tab-' + pending_app_settings);
+                if (tab.length) {
+                    SBSettings.open(pending_app_settings, true);
+                } else {
+                    header.find('.sb-admin-nav #sb-settings').click();
+                }
+            }, 500);
+        }
+
         // Browser history
         window.onpopstate = function () {
             admin.sbHideLightbox();
@@ -5903,6 +5916,7 @@
                         SBForm.showErrorMessage(box, error);
                         $(this).sbLoading(false);
                     } else {
+                        SBF.storage('open-app-settings', app_name);
                         infoBottom('Activation complete! Page reload in progress...');
                         setTimeout(function () {
                             location.reload();
