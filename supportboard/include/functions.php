@@ -735,8 +735,14 @@ function sb_app_activation($app_name, $key) {
     }
     $key = trim($key);
     $envato_code = sb_get_setting('envato-purchase-code');
-    if ($envato_code) {
-        $response = sb_download('https://board.support/synch/updates.php?sb=' . trim($envato_code) . '&' . $app_name . '=' . $key . '&domain=' . SB_URL);
+    if ($key !== '') {
+        $query = [];
+        if ($envato_code) {
+            $query[] = 'sb=' . trim($envato_code);
+        }
+        $query[] = $app_name . '=' . $key;
+        $query[] = 'domain=' . SB_URL;
+        $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
         if ($response && $response != 'purchase-code-limit-exceeded') {
             $response = json_decode($response, true);
             if (is_array($response) && !empty($response[$app_name]) && !in_array($response[$app_name], ['purchase-code-limit-exceeded', 'expired'])) {
