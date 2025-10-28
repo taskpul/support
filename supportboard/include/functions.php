@@ -733,26 +733,33 @@ function sb_app_activation($app_name, $key) {
         array_push($active_apps, $app_name);
         return sb_save_external_setting('active_apps', $active_apps);
     }
-    $envato_code = sb_get_setting('envato-purchase-code');
-    if (!$envato_code) {
-        return new SBValidationError('envato-purchase-code-not-found');
-    }
     $key = trim($key);
-    $response = sb_download('https://board.support/synch/updates.php?sb=' . trim($envato_code) . '&' . $app_name . '=' . $key . '&domain=' . SB_URL);
-    if ($response == 'purchase-code-limit-exceeded') {
-        return new SBValidationError('purchase-code-limit-exceeded');
+    $envato_code = sb_get_setting('envato-purchase-code');
+    if ($envato_code) {
+        $response = sb_download('https://board.support/synch/updates.php?sb=' . trim($envato_code) . '&' . $app_name . '=' . $key . '&domain=' . SB_URL);
+        if ($response && $response != 'purchase-code-limit-exceeded') {
+            $response = json_decode($response, true);
+            if (is_array($response) && !empty($response[$app_name]) && !in_array($response[$app_name], ['purchase-code-limit-exceeded', 'expired'])) {
+                $update_result = sb_app_update($app_name, $response[$app_name], $key);
+                if (!($update_result instanceof SBValidationError)) {
+                    return $update_result;
+                }
+            }
+        }
     }
-    $response = json_decode($response, true);
-    if (empty($response[$app_name])) {
-        return new SBValidationError('invalid-key');
+    return sb_app_open_activation($app_name, $key);
+}
+
+function sb_app_open_activation($app_name, $key) {
+    $keys = sb_get_external_setting('app-keys');
+    if (!is_array($keys)) {
+        $keys = [];
     }
-    if ($response[$app_name] == 'purchase-code-limit-exceeded') {
-        return new SBValidationError('app-purchase-code-limit-exceeded');
+    if ($key !== '') {
+        $keys[$app_name] = $key;
+        sb_save_external_setting('app-keys', $keys);
     }
-    if ($response[$app_name] == 'expired') {
-        return new SBValidationError('expired');
-    }
-    return sb_app_update($app_name, $response[$app_name], $key);
+    return 'success';
 }
 
 function sb_app_disable($app_name) {
