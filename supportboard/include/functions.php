@@ -774,7 +774,7 @@ function sb_app_activation($app_name, $key) {
                     if ($update_result instanceof SBValidationError) {
                         return $update_result;
                     }
-                    if ($update_result) {
+                    if ($update_result && $update_result !== 'success') {
                         return $update_result;
                     }
                 }
