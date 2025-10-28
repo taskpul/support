@@ -743,15 +743,40 @@ function sb_app_activation($app_name, $key) {
         $query[] = $app_name . '=' . $key;
         $query[] = 'domain=' . SB_URL;
         $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
-        if ($response && $response != 'purchase-code-limit-exceeded') {
-            $response = json_decode($response, true);
-            if (is_array($response) && !empty($response[$app_name]) && !in_array($response[$app_name], ['purchase-code-limit-exceeded', 'expired'])) {
-                $update_result = sb_app_update($app_name, $response[$app_name], $key);
-                if ($update_result instanceof SBValidationError) {
-                    return $update_result;
+        if ($response) {
+            $error_map = ['purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded', 'app-purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded'];
+            if (isset($error_map[$response])) {
+                return $error_map[$response];
+            }
+            if (in_array($response, ['invalid-key', 'expired', 'envato-purchase-code-not-found'])) {
+                return $response;
+            }
+            $response_decoded = json_decode($response, true);
+            if (JSON_ERROR_NONE === json_last_error()) {
+                if (isset($response_decoded['error'])) {
+                    $error = $response_decoded['error'];
+                    if (isset($error_map[$error])) {
+                        return $error_map[$error];
+                    }
+                    if (in_array($error, ['invalid-key', 'expired', 'envato-purchase-code-not-found'])) {
+                        return $error;
+                    }
                 }
-                if ($update_result) {
-                    return $update_result;
+                if (is_array($response_decoded) && !empty($response_decoded[$app_name])) {
+                    $download_file = $response_decoded[$app_name];
+                    if (isset($error_map[$download_file])) {
+                        return $error_map[$download_file];
+                    }
+                    if (in_array($download_file, ['invalid-key', 'expired', 'envato-purchase-code-not-found'])) {
+                        return $download_file;
+                    }
+                    $update_result = sb_app_update($app_name, $download_file, $key);
+                    if ($update_result instanceof SBValidationError) {
+                        return $update_result;
+                    }
+                    if ($update_result) {
+                        return $update_result;
+                    }
                 }
             }
         }
