@@ -826,7 +826,8 @@ function sb_app_update($app_name, $file_name, $key = false) {
     }
     $key = trim($key);
     $error = '';
-    $zip = sb_download('https://board.support/synch/temp/' . $file_name);
+    $zip_url = strpos($file_name, 'http') === 0 ? $file_name : 'https://board.support/synch/temp/' . $file_name;
+    $zip = sb_download($zip_url);
     if ($zip) {
         $file_path = SB_PATH . '/uploads/' . $app_name . '.zip';
         if (!file_exists(dirname($file_path))) {
