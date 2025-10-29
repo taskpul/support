@@ -1575,6 +1575,8 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
     $ch = curl_init($url);
     $headers = [];
     $post_value = $post_fields ? (is_string($post_fields) ? $post_fields : (in_array('Content-Type: multipart/form-data', $header) ? $post_fields : http_build_query($post_fields))) : false;
+    $file_handle = null;
+    $download_path = null;
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
@@ -1614,11 +1616,13 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_TIMEOUT, $timeout ? $timeout : 70);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_FAILONERROR, true);
             break;
         case 'FILE':
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_TIMEOUT, $timeout ? $timeout : 400);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_FAILONERROR, true);
             $path = sb_upload_path(false, true);
             if (!file_exists($path)) {
                 mkdir($path, 0755, true);
@@ -1634,8 +1638,9 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
             while (file_exists($path . '/' . $basename)) {
                 $basename = rand(100, 1000000) . $basename;
             }
-            $file = fopen($path . '/' . $basename, 'wb');
-            curl_setopt($ch, CURLOPT_FILE, $file);
+            $download_path = $path . '/' . $basename;
+            $file_handle = fopen($download_path, 'wb');
+            curl_setopt($ch, CURLOPT_FILE, $file_handle);
             break;
         case 'UPLOAD':
             curl_setopt($ch, CURLOPT_POST, true);
@@ -1652,10 +1657,20 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
         curl_setopt($ch, CURLOPT_HEADER, true);
     }
     $response = curl_exec($ch);
-    $status_code = $method == 'GET-SC' ? curl_getinfo($ch, CURLINFO_HTTP_CODE) : false;
-    if (curl_errno($ch) > 0) {
+    $status_code = $method == 'GET-SC' ? curl_getinfo($ch, CURLINFO_HTTP_CODE) : curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $curl_errno = curl_errno($ch);
+    if ($file_handle) {
+        fclose($file_handle);
+        if (($curl_errno > 0 || $status_code >= 400) && $download_path && file_exists($download_path)) {
+            unlink($download_path);
+        }
+    }
+    if ($curl_errno > 0) {
         $error = curl_error($ch);
         curl_close($ch);
+        if (defined('CURLE_HTTP_RETURNED_ERROR') && $curl_errno === CURLE_HTTP_RETURNED_ERROR && in_array($method, ['DOWNLOAD', 'FILE'])) {
+            return false;
+        }
         return $error;
     }
     if ($include_headers) {
@@ -1670,6 +1685,9 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
         }
     }
     curl_close($ch);
+    if (in_array($method, ['DOWNLOAD', 'GET', 'GET-SC']) && $status_code && $status_code >= 400) {
+        return false;
+    }
     if ($include_headers) {
         return [json_decode($response, true), $headers];
     }
@@ -1680,7 +1698,10 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
             $response_ = json_decode($response, true);
             return JSON_ERROR_NONE !== json_last_error() ? $response : $response_;
         case 'FILE':
-            return sb_upload_path(true, true) . '/' . $basename;
+            if (!$download_path || !file_exists($download_path)) {
+                return false;
+            }
+            return sb_upload_path(true, true) . '/' . basename($download_path);
         case 'GET-SC':
             return [$response, $status_code];
     }
@@ -1699,6 +1720,22 @@ function sb_download($url) {
             $options['http_version'] = CURL_HTTP_VERSION_1_1;
         }
         $response = sb_curl($url, '', [], 'DOWNLOAD', false, false, $options);
+    }
+    if (($response === false || $response === '' || $response === null) && function_exists('wp_remote_get') && function_exists('wp_remote_retrieve_body')) {
+        $wp_response = wp_remote_get($url, [
+            'timeout' => 70,
+            'sslverify' => false,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
+                'Accept' => 'application/json, application/zip, */*'
+            ]
+        ]);
+        if (!is_wp_error($wp_response)) {
+            $body = wp_remote_retrieve_body($wp_response);
+            if ($body !== false && $body !== '' && $body !== null) {
+                $response = $body;
+            }
+        }
     }
     return $response;
 }
