@@ -727,6 +727,36 @@ function sb_app_get_key($app_name) {
     return isset($keys[$app_name]) ? $keys[$app_name] : '';
 }
 
+function sb_get_updates_domain($domain = null, $encode = true) {
+    if (!is_null($domain)) {
+        $domain = trim(rawurldecode($domain));
+    } else {
+        $domain = '';
+        if (defined('SB_URL') && SB_URL) {
+            $domain = SB_URL;
+        } else if (function_exists('sb_get_setting')) {
+            $setting_domain = sb_get_setting('url');
+            if ($setting_domain) {
+                $domain = $setting_domain;
+            }
+        }
+        if (!$domain && !empty($_SERVER['HTTP_HOST'])) {
+            $https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+            $scheme = $https ? 'https://' : 'http://';
+            $script_name = isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '';
+            $script_dir = trim(str_replace('\\', '/', dirname($script_name)), '/');
+            $domain = $scheme . $_SERVER['HTTP_HOST'] . ($script_dir && $script_dir != '.' ? '/' . $script_dir : '');
+        }
+    }
+    if ($domain) {
+        $domain = rtrim($domain, '/');
+    }
+    if ($domain === '') {
+        return '';
+    }
+    return $encode ? rawurlencode($domain) : $domain;
+}
+
 function sb_app_activation($app_name, $key) {
     if (sb_is_cloud()) {
         $active_apps = sb_get_external_setting('active_apps', []);
@@ -742,7 +772,10 @@ function sb_app_activation($app_name, $key) {
             $query[] = 'sb=' . trim($envato_code);
         }
         $query[] = $app_name . '=' . $key;
-        $query[] = 'domain=' . SB_URL;
+        $domain_param = sb_get_updates_domain();
+        if ($domain_param !== '') {
+            $query[] = 'domain=' . $domain_param;
+        }
         $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
         if ($response) {
             $error_map = ['purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded', 'app-purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded'];
@@ -877,7 +910,10 @@ function sb_app_download_latest($app_name, $key, $envato_code = false) {
         $query[] = 'sb=' . trim($envato_code);
     }
     $query[] = $app_name . '=' . $key;
-    $query[] = 'domain=' . SB_URL;
+    $domain_param = sb_get_updates_domain();
+    if ($domain_param !== '') {
+        $query[] = 'domain=' . $domain_param;
+    }
     $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
     if (!$response) {
         return new SBValidationError('download-error');
@@ -930,7 +966,10 @@ function sb_update() {
         }
     }
     if (isset($_POST['domain'])) {
-        $link .= 'domain=' . $_POST['domain'] . '&';
+        $domain_param = sb_get_updates_domain($_POST['domain']);
+        if ($domain_param !== '') {
+            $link .= 'domain=' . $domain_param . '&';
+        }
     }
     $downloads = sb_download('https://board.support/synch/updates.php?' . substr($link, 0, -1));
     if (empty($downloads)) {
@@ -1906,7 +1945,8 @@ function sb_verification_cookie($code, $domain) {
     if (empty($code)) {
         return [false, ''];
     }
-    $response = sb_get('https://bo' . 'ard.supp' . 'ort/syn' . 'ch/verifi' . 'cation.php' . '?ve' . 'rification&code=' . $code . '&domain=' . $domain);
+    $domain_param = sb_get_updates_domain($domain);
+    $response = sb_get('https://bo' . 'ard.supp' . 'ort/syn' . 'ch/verifi' . 'cation.php' . '?ve' . 'rification&code=' . $code . '&domain=' . $domain_param);
     if ($response == 'verifi' . 'cation-success') {
         return [true, password_hash('VGCKME' . 'NS', PASSWORD_DEFAULT)];
     }
