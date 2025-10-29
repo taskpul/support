@@ -80,7 +80,7 @@ class SBValidationError {
     }
 }
 
-$sb_apps = ['dialogflow', 'slack', 'wordpress', 'tickets', 'woocommerce', 'ump', 'perfex', 'whmcs', 'aecommerce', 'messenger', 'whatsapp', 'armember', 'viber', 'telegram', 'line', 'wechat', 'zalo', 'twitter', 'zendesk', 'martfury', 'opencart'];
+$sb_apps = ['dialogflow', 'slack', 'wordpress', 'tickets', 'woocommerce', 'ump', 'perfex', 'whmcs', 'aecommerce', 'messenger', 'whatsapp', 'armember', 'viber', 'telegram', 'line', 'wechat', 'zalo', 'twitter', 'zendesk', 'martfury', 'opencart', 'shopify'];
 for ($i = 0; $i < count($sb_apps); $i++) {
     $file = SB_PATH . '/apps/' . $sb_apps[$i] . '/functions.php';
     if (file_exists($file)) {
@@ -966,7 +966,7 @@ function sb_updates_available() {
 
 function sb_get_installed_apps_version() {
     $is_not_cloud = !sb_is_cloud();
-    return ['dialogflow' => sb_defined('SB_DIALOGFLOW'), 'slack' => sb_defined('SB_SLACK'), 'tickets' => sb_defined('SB_TICKETS'), 'woocommerce' => $is_not_cloud ? sb_defined('SB_WOOCOMMERCE') : false, 'ump' => $is_not_cloud ? sb_defined('SB_UMP') : false, 'perfex' => $is_not_cloud ? sb_defined('SB_PERFEX') : false, 'whmcs' => $is_not_cloud ? sb_defined('SB_WHMCS') : false, 'aecommerce' => $is_not_cloud ? sb_defined('SB_AECOMMERCE') : false, 'messenger' => sb_defined('SB_MESSENGER'), 'whatsapp' => sb_defined('SB_WHATSAPP'), 'armember' => $is_not_cloud ? sb_defined('SB_ARMEMBER') : false, 'telegram' => sb_defined('SB_TELEGRAM'), 'viber' => sb_defined('SB_VIBER'), 'line' => sb_defined('SB_LINE'), 'wechat' => sb_defined('SB_WECHAT'), 'zalo' => sb_defined('SB_ZALO'), 'twitter' => sb_defined('SB_TWITTER'), 'zendesk' => sb_defined('SB_ZENDESK'), 'martfury' => $is_not_cloud ? sb_defined('SB_MARTFURY') : false, 'opencart' => $is_not_cloud ? sb_defined('SB_OPENCART') : false];
+    return ['dialogflow' => sb_defined('SB_DIALOGFLOW'), 'slack' => sb_defined('SB_SLACK'), 'tickets' => sb_defined('SB_TICKETS'), 'woocommerce' => $is_not_cloud ? sb_defined('SB_WOOCOMMERCE') : false, 'ump' => $is_not_cloud ? sb_defined('SB_UMP') : false, 'perfex' => $is_not_cloud ? sb_defined('SB_PERFEX') : false, 'whmcs' => $is_not_cloud ? sb_defined('SB_WHMCS') : false, 'aecommerce' => $is_not_cloud ? sb_defined('SB_AECOMMERCE') : false, 'messenger' => sb_defined('SB_MESSENGER'), 'whatsapp' => sb_defined('SB_WHATSAPP'), 'armember' => $is_not_cloud ? sb_defined('SB_ARMEMBER') : false, 'telegram' => sb_defined('SB_TELEGRAM'), 'viber' => sb_defined('SB_VIBER'), 'line' => sb_defined('SB_LINE'), 'wechat' => sb_defined('SB_WECHAT'), 'zalo' => sb_defined('SB_ZALO'), 'twitter' => sb_defined('SB_TWITTER'), 'zendesk' => sb_defined('SB_ZENDESK'), 'martfury' => $is_not_cloud ? sb_defined('SB_MARTFURY') : false, 'opencart' => $is_not_cloud ? sb_defined('SB_OPENCART') : false, 'shopify' => sb_defined('SB_SHOPIFY')];
 }
 
 

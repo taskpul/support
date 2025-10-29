@@ -2006,6 +2006,7 @@
             }
             switch (name) {
                 case 'opencart':
+                case 'shopify':
                 case 'zendesk':
                 case 'twitter':
                 case 'wechat':
@@ -5767,7 +5768,7 @@
                 function: 'get-versions'
             }, (response) => {
                 let code = '';
-                let names = { sb: 'Support Board', slack: 'Slack', dialogflow: 'Artificial Intelligence', tickets: 'Tickets', woocommerce: 'Woocommerce', ump: 'Ultimate Membership Pro', perfex: 'Perfex', whmcs: 'WHMCS', aecommerce: 'Active eCommerce', messenger: 'Messenger', whatsapp: 'WhatsApp', armember: 'ARMember', telegram: 'Telegram', viber: 'Viber', line: 'LINE', wechat: 'WeChat', zalo: 'Zalo', twitter: 'Twitter', zendesk: 'Zendesk', martfury: 'Martfury', opencart: 'OpenCart', zalo: 'Zalo' };
+                let names = { sb: 'Support Board', slack: 'Slack', dialogflow: 'Artificial Intelligence', tickets: 'Tickets', woocommerce: 'Woocommerce', ump: 'Ultimate Membership Pro', perfex: 'Perfex', whmcs: 'WHMCS', aecommerce: 'Active eCommerce', messenger: 'Messenger', whatsapp: 'WhatsApp', armember: 'ARMember', telegram: 'Telegram', viber: 'Viber', line: 'LINE', wechat: 'WeChat', zalo: 'Zalo', twitter: 'Twitter', zendesk: 'Zendesk', martfury: 'Martfury', opencart: 'OpenCart', shopify: 'Shopify', zalo: 'Zalo' };
                 let updates = false;
                 for (var key in response) {
                     if (SBApps.is(key)) {
