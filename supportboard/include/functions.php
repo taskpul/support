@@ -1480,7 +1480,7 @@ function sb_string_slug($string, $action = 'slug', $is_alphanumeric = false) {
     return $string;
 }
 
-function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeout = false, $include_headers = false) {
+function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeout = false, $include_headers = false, $options = []) {
     $ch = curl_init($url);
     $headers = [];
     $post_value = $post_fields ? (is_string($post_fields) ? $post_fields : (in_array('Content-Type: multipart/form-data', $header) ? $post_fields : http_build_query($post_fields))) : false;
@@ -1488,6 +1488,12 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36');
+    if (!empty($options['force_ipv4']) && defined('CURL_IPRESOLVE_V4')) {
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    }
+    if (!empty($options['http_version'])) {
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, $options['http_version']);
+    }
     switch ($method) {
         case 'DELETE':
         case 'PUT':
@@ -1591,7 +1597,19 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
 }
 
 function sb_download($url) {
-    return sb_curl($url, '', '', 'DOWNLOAD');
+    $response = sb_curl($url, '', [], 'DOWNLOAD');
+    if ($response === false || $response === '' || $response === null) {
+        $response = sb_curl($url, '', [], 'DOWNLOAD', false, false, ['force_ipv4' => true]);
+    }
+    if ($response === false || $response === '' || $response === null) {
+        usleep(250000);
+        $options = ['force_ipv4' => true];
+        if (defined('CURL_HTTP_VERSION_1_1')) {
+            $options['http_version'] = CURL_HTTP_VERSION_1_1;
+        }
+        $response = sb_curl($url, '', [], 'DOWNLOAD', false, false, $options);
+    }
+    return $response;
 }
 
 function sb_download_file($url, $file_name = false, $mime = false, $header = [], $recursion = 0, $return_path = false) {
