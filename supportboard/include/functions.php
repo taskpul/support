@@ -718,8 +718,47 @@ function sb_is_rtl($language_code = false) {
  *
  */
 
+function sb_get_updates_base_urls() {
+    $base_urls = ['https://board.support/synch'];
+    if (defined('SB_UPDATES_BASE_URLS')) {
+        $custom_urls = SB_UPDATES_BASE_URLS;
+        if (!is_array($custom_urls)) {
+            $custom_urls = array_map('trim', explode(',', (string) $custom_urls));
+        }
+        foreach ($custom_urls as $custom_url) {
+            if ($custom_url) {
+                $base_urls[] = $custom_url;
+            }
+        }
+    } else {
+        $base_urls[] = 'https://updates.board.support/synch';
+    }
+    $base_urls = array_map(function ($url) {
+        return rtrim($url, '/');
+    }, $base_urls);
+    return array_values(array_unique(array_filter($base_urls)));
+}
+
+function sb_updates_download($path, $query = '') {
+    $query = ltrim((string) $query, '?');
+    $last_response = false;
+    foreach (sb_get_updates_base_urls() as $base_url) {
+        $url = rtrim($base_url, '/') . '/' . ltrim($path, '/');
+        if ($query !== '') {
+            $url .= (strpos($url, '?') === false ? '?' : '&') . $query;
+        }
+        $response = sb_download($url);
+        if ($response !== false && $response !== '' && $response !== null) {
+            return $response;
+        }
+        $last_response = $response;
+    }
+    return $last_response;
+}
+
 function sb_get_versions() {
-    return json_decode(sb_download('https://board.support/synch/versions.json'), true);
+    $response = sb_updates_download('versions.json');
+    return json_decode($response, true);
 }
 
 function sb_app_get_key($app_name) {
@@ -776,7 +815,7 @@ function sb_app_activation($app_name, $key) {
         if ($domain_param !== '') {
             $query[] = 'domain=' . $domain_param;
         }
-        $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
+        $response = sb_updates_download('updates.php', implode('&', $query));
         if ($response) {
             $error_map = ['purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded', 'app-purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded'];
             if (isset($error_map[$response])) {
@@ -859,8 +898,21 @@ function sb_app_update($app_name, $file_name, $key = false) {
     }
     $key = trim($key);
     $error = '';
-    $zip_url = strpos($file_name, 'http') === 0 ? $file_name : 'https://board.support/synch/temp/' . $file_name;
-    $zip = sb_download($zip_url);
+    $zip_sources = [];
+    if (strpos($file_name, 'http') === 0) {
+        $zip_sources[] = $file_name;
+    } else {
+        foreach (sb_get_updates_base_urls() as $base_url) {
+            $zip_sources[] = rtrim($base_url, '/') . '/temp/' . ltrim($file_name, '/');
+        }
+    }
+    $zip = false;
+    foreach ($zip_sources as $zip_url) {
+        $zip = sb_download($zip_url);
+        if ($zip !== false && $zip !== '' && $zip !== null) {
+            break;
+        }
+    }
     if ($zip) {
         $file_path = SB_PATH . '/uploads/' . $app_name . '.zip';
         if (!file_exists(dirname($file_path))) {
@@ -914,7 +966,7 @@ function sb_app_download_latest($app_name, $key, $envato_code = false) {
     if ($domain_param !== '') {
         $query[] = 'domain=' . $domain_param;
     }
-    $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
+    $response = sb_updates_download('updates.php', implode('&', $query));
     if (!$response) {
         return new SBValidationError('download-error');
     }
@@ -971,7 +1023,7 @@ function sb_update() {
             $link .= 'domain=' . $domain_param . '&';
         }
     }
-    $downloads = sb_download('https://board.support/synch/updates.php?' . substr($link, 0, -1));
+    $downloads = sb_updates_download('updates.php', substr($link, 0, -1));
     if (empty($downloads)) {
         return new SBValidationError('empty-or-null');
     }
@@ -1125,7 +1177,7 @@ function sb_installation($details, $force = false) {
         }
 
         // Return
-        sb_get('https://board.support/synch/index.php?site=' . $details['url']);
+        sb_updates_download('index.php', 'site=' . $details['url']);
         foreach ($db_respones as $key => $value) {
             if ($value !== true) {
                 $success .= $key . ': ' . ($value === false ? 'false' : $value) . ',';
