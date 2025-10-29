@@ -5,7 +5,7 @@
  * COMPONENTS.PHP
  * ==========================================================
  *
- * Library of static html components for the admin area. This file must not be executed directly. © 2017-2025 board.support. All rights reserved.
+ * Library of static html components for the admin area. This file must not be executed directly. Â© 2017-2025 board.support. All rights reserved.
  *
  */
 
@@ -498,6 +498,7 @@ function sb_component_admin() {
         ['SB_PERFEX', 'perfex', 'Perfex', 'Synchronize your Perfex customers in real-time and let them contact you via chat! View profile details, proactively engage them, and more.'],
         ['SB_WHMCS', 'whmcs', 'Whmcs', 'Synchronize your customers in real-time, chat with them and boost their engagement, or provide a better and faster support.'],
         ['SB_OPENCART', 'opencart', 'OpenCart', 'Integrate OpenCart with {R} for real-time syncing of customers, order history access, and customer cart visibility.'],
+        ['SB_SHOPIFY', 'shopify', 'Shopify', 'Connect your Shopify store to {R} to sync customers, carts, and orders in real-time directly inside {R}.'],
         ['SB_AECOMMERCE', 'aecommerce', 'Active eCommerce', 'Increase sales and connect you and sellers with customers in real-time by integrating Active eCommerce with {R}.'],
         ['SB_ARMEMBER', 'armember', 'ARMember', 'Synchronize customers, enable ticket and chat support for subscribers only, view subscription plans in the admin area.'],
         ['SB_MARTFURY', 'martfury', 'Martfury', 'Increase sales and connect you and sellers with customers in real-time by integrating Martfury with {R}.'],
