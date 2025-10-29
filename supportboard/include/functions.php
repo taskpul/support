@@ -735,6 +735,7 @@ function sb_app_activation($app_name, $key) {
     }
     $key = trim($key);
     $envato_code = sb_get_setting('envato-purchase-code');
+    $app_downloaded = false;
     if ($key !== '') {
         $query = [];
         if ($envato_code) {
@@ -777,11 +778,24 @@ function sb_app_activation($app_name, $key) {
                     if ($update_result && $update_result !== 'success') {
                         return $update_result;
                     }
+                    if ($update_result === 'success') {
+                        $app_downloaded = true;
+                    }
                 }
             }
         }
     }
-    return sb_app_open_activation($app_name, $key);
+    $activation_result = sb_app_open_activation($app_name, $key);
+    if ($activation_result === 'success' && !$app_downloaded && $key !== '' && !file_exists(SB_PATH . '/apps/' . $app_name)) {
+        $fallback_result = sb_app_download_latest($app_name, $key, $envato_code);
+        if ($fallback_result instanceof SBValidationError) {
+            return $fallback_result;
+        }
+        if ($fallback_result && $fallback_result !== 'success') {
+            return $fallback_result;
+        }
+    }
+    return $activation_result;
 }
 
 function sb_app_open_activation($app_name, $key) {
@@ -850,6 +864,49 @@ function sb_app_update($app_name, $file_name, $key = false) {
         $error = 'download-error';
     }
     return $error ? new SBValidationError($error) : false;
+}
+
+function sb_app_download_latest($app_name, $key, $envato_code = false) {
+    $key = trim($key);
+    if ($key === '') {
+        return new SBValidationError('invalid-key');
+    }
+    $query = [];
+    if ($envato_code) {
+        $query[] = 'sb=' . trim($envato_code);
+    }
+    $query[] = $app_name . '=' . $key;
+    $query[] = 'domain=' . SB_URL;
+    $response = sb_download('https://board.support/synch/updates.php?' . implode('&', $query));
+    if (!$response) {
+        return new SBValidationError('download-error');
+    }
+    $error_map = ['purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded', 'app-purchase-code-limit-exceeded' => 'app-purchase-code-limit-exceeded'];
+    if (isset($error_map[$response])) {
+        return $error_map[$response];
+    }
+    if (in_array($response, ['invalid-key', 'expired', 'envato-purchase-code-not-found'])) {
+        return $response;
+    }
+    $response_decoded = json_decode($response, true);
+    if (JSON_ERROR_NONE !== json_last_error() || !is_array($response_decoded) || empty($response_decoded[$app_name])) {
+        return new SBValidationError('download-error');
+    }
+    $download_file = $response_decoded[$app_name];
+    if (isset($error_map[$download_file])) {
+        return $error_map[$download_file];
+    }
+    if (in_array($download_file, ['invalid-key', 'expired', 'envato-purchase-code-not-found'])) {
+        return $download_file;
+    }
+    $update_result = sb_app_update($app_name, $download_file, $key);
+    if ($update_result instanceof SBValidationError) {
+        return $update_result;
+    }
+    if ($update_result && $update_result !== 'success') {
+        return $update_result;
+    }
+    return 'success';
 }
 
 function sb_update() {
